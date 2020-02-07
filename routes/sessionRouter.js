@@ -1,7 +1,15 @@
 const Express = require("express");
-const BodyParser = require("body-parser");
-const Cors = require("cors");
 const UUID = require("uuid");
 var router = Express.Router();
 
-// module.exports = router
+
+router.get("/session", (req, res, next) => {
+  const sess =req.session 
+  sess.token = UUID.v4();
+  console.log(11, sess);
+  
+  res.send({ id: sess.token });
+});
+
+
+module.exports = router

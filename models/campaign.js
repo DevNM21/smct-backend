@@ -17,7 +17,7 @@ campaignSchema.statics.new = async (token, title, imageName) => {
     token : token,
     title : title,
     image : imageName,
-    createdAt : Date()
+    createdAt : Date().toLocaleString()
   }).save()
 }
 

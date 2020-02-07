@@ -29,42 +29,30 @@ const bucket = googleCloudStorage.bucket(process.env.GCLOUD_STORAGE_BUCKET);
 
 
 
-router.get("/session", (req, res, next) => {
-  const sess =req.session 
-  sess.token = UUID.v4();
-  console.log(11, sess);
-  
-  res.send({ id: sess.token });
-});
-
-
-router.post("/session", (request, response, next) => {
-  if(request.body.session != request.session.token) {
-      return response.status(500).send({ message: "The data in the session does not match!" });
-  }
-  response.send({ message: "Success!" });
-});
-
 
 
 //try to get campaigns, if you have a token, you'll get campaigns by the token, no token you'll get one
-router.get("/campaigns", async(req, res) => {
-  const body = req.body
-  if(body.token != req.session.token) {
-    req.session.token = UUID.v4();
-    response.send({ id: req.session.token });
-} else {
-  const campaigns = await Campaign.find({token : req.body.token})
-  //send the campaigns based on the token
-}
+router.get("/campaigns/:token", async(req, res) => {
+  
+//   if(body.token != req.session.token) {
+//     req.session.token = UUID.v4();
+//     response.send({ id: req.session.token });
+// } else {
+//   const campaigns = await Campaign.find({token : req.body.token})
+//   //send the campaigns based on the token
+// }
+
+const campaigns = await Campaign.find({token : req.params.token})
+campaigns.forEach(c => {
+  c.createdAt = c.createdAt.toLocaleDateString()
+  console.log(c.createdAt.toLocaleDateString());
+  
+  
+})
+res.send(campaigns)
 });
 
 router.post("/campaigns", m.single("file"), async (req, res, next) => {
-  var sess = req.session
-  console.log(22, {sess});
-  
-  console.log(req.body.session, sess.token);
-  
   // if(req.body.session != req.session.token) {
   //   return res.status(500).send({ message: "The data in the session does not match!" });
   // }
@@ -83,26 +71,23 @@ router.post("/campaigns", m.single("file"), async (req, res, next) => {
     return;
   });
 
-  blobStream.on("finish", () => {
+  blobStream.on("finish", async() => {
     // The public URL can be used to directly access the file via HTTP.
     const publicUrl = `https://storage.googleapis.com/${bucket.name}/${blob.name}`;
 
     // Make the image public to the web (since we'll be displaying it in browser)
-    blob.makePublic().then(() => {
-      res.status(200).send(`Success!\n Image uploaded to ${publicUrl}`);
-    });
+      const campaign = await Campaign.new(req.body.session, req.body.title, publicUrl)
+      res.send(campaign)
   });
 
-  const campaign = await Campaign.new(req.body.session || 'no', req.body.title, filename)
   blobStream.end(req.file.buffer);
-
-  console.log(campaign);
-  res.send(campaign)
-  
-
   // let salt = chance.string({length: 7,
   //   pool: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'});
-  res.send({ message: "Success!" });
 });
+
+router.delete('/campaigns/:id', async(req, res)=> {
+  await Campaign.findByIdAndRemove(req.params.id)
+  res.status(201).send('deleted')
+})
 
 module.exports = router
